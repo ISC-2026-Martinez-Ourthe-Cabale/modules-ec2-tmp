@@ -7,7 +7,7 @@ resource "aws_instance" "db_init" {
   ]
   iam_instance_profile = "LabInstanceProfile"
   instance_initiated_shutdown_behavior = "terminate"
-  user_data = file("../scripts/init-db.sh")
+  user_data = file("../../../scripts/init-db.sh")
   tags = {
     Name = "db-init-job"
   }
