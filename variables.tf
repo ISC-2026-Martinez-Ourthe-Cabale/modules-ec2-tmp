@@ -1,7 +1,3 @@
-variable "instance_type" {
-    type = string  
-}
-
 variable "private_subnet_ids" {
   description = "Lista de IDs de subnets privadas para el ASG"
   type = list(string)
