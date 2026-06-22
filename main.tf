@@ -2,38 +2,42 @@ resource "aws_instance" "db_init" {
 
   ami           = var.ami
   instance_type = var.instance_type
+
+  subnet_id = var.private_subnet_ids[0]
+
   vpc_security_group_ids = [
     var.ec2_security_group_id
   ]
+
   iam_instance_profile                 = "LabInstanceProfile"
   instance_initiated_shutdown_behavior = "terminate"
 
-  user_data = base64encode(<<-EOF
-  #!/bin/bash
-  yum install -y mysql awscli
+  user_data = <<-EOF
+#!/bin/bash
 
-  aws s3 cp s3://${var.bucket_name}/db-settigns/db-settigns.sql /tmp/db-settings.sql
+dnf install -y mariadb105 awscli
 
+aws s3 cp s3://${var.bucket_name}/db-settigns/db-settigns.sql /tmp/db-settings.sql
 
-  cat > .env <<EOL
-  DB_HOST=${var.db_host}
-  DB_NAME=${var.db_name}
-  DB_USER=${var.db_username}
-  DB_PASSWORD=${var.db_password}
-  EOL
+cat > /tmp/.env <<EOL
+DB_HOST=${var.db_host}
+DB_NAME=${var.db_name}
+DB_USER=${var.db_username}
+DB_PASSWORD=${var.db_password}
+EOL
 
-  set -a
-  source .env
-  set +a
+set -a
+source /tmp/.env
+set +a
 
-  mysql -h "$DB_HOST" \
-    -u "$DB_USER" \
-    -p"$DB_PASSWORD" \
-    "$DB_NAME" < /tmp/db-settings.sql
+mysql -h "$DB_HOST" \
+  -u "$DB_USER" \
+  -p"$DB_PASSWORD" \
+  "$DB_NAME" < /tmp/db-settings.sql
 
-  shutdown -h now
-  EOF
-  )
+shutdown -h now
+EOF
+
   tags = {
     Name = "db-init-job"
   }
