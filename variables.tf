@@ -34,3 +34,7 @@ variable "db_username" {
 variable "db_password" {
   type = string
 }
+
+variable "bucket_name" {
+    type = string  
+}
