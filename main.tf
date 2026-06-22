@@ -10,14 +10,14 @@ resource "aws_instance" "db_init" {
   ]
 
   iam_instance_profile                 = "LabInstanceProfile"
-#  instance_initiated_shutdown_behavior = "terminate"
+  instance_initiated_shutdown_behavior = "terminate"
 
   user_data = <<-EOF
 #!/bin/bash
 
 dnf install -y mariadb105 awscli
 
-aws s3 cp s3://${var.bucket_name}/db-settigns/db-settigns.sql /tmp/db-settings.sql
+aws s3 cp s3://${var.bucket_name}/db-settings/db-settings.sql /tmp/db-settings.sql
 
 cat > /tmp/.env <<EOL
 DB_HOST=${var.db_host}
@@ -35,6 +35,7 @@ mysql -h "$DB_HOST" \
   -p"$DB_PASSWORD" \
   "$DB_NAME" < /tmp/db-settings.sql
 
+shutdown -h 0
 EOF
 
   tags = {
