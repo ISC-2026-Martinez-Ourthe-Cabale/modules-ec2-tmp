@@ -10,7 +10,7 @@ resource "aws_instance" "db_init" {
   ]
 
   iam_instance_profile                 = "LabInstanceProfile"
-  instance_initiated_shutdown_behavior = "terminate"
+#  instance_initiated_shutdown_behavior = "terminate"
 
   user_data = <<-EOF
 #!/bin/bash
