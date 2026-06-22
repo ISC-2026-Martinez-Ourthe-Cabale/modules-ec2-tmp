@@ -35,7 +35,6 @@ mysql -h "$DB_HOST" \
   -p"$DB_PASSWORD" \
   "$DB_NAME" < /tmp/db-settings.sql
 
-shutdown -h now
 EOF
 
   tags = {
