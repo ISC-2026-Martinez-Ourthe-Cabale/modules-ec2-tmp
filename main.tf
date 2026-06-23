@@ -30,10 +30,10 @@ set -a
 source /tmp/.env
 set +a
 
-mysql -h "$DB_HOST" \
-  -u "$DB_USER" \
-  -p"$DB_PASSWORD" \
-  "$DB_NAME" < /tmp/db-settings.sql
+mysql -h "${var.db_host}" \
+  -u "${var.db_username}" \
+  -p"${var.db_password}" \
+  "${var.db_name}" < /tmp/db-settings.sql
 
 
 EOF
