@@ -21,6 +21,7 @@ aws s3 cp s3://${var.bucket_name}/db-settings/db-settings.sql /tmp/db-settings.s
 
 cat > /tmp/.env <<EOL
 DB_HOST=${var.db_host}
+DB_ADDRESS=${var.db_address}
 DB_NAME=${var.db_name}
 DB_USER=${var.db_username}
 DB_PASSWORD=${var.db_password}
@@ -30,9 +31,10 @@ set -a
 source /tmp/.env
 set +a
 
-mysql -h "${var.db_host}" \
+mysql -h "${var.db_address}" \
   -u "${var.db_username}" \
   -p"${var.db_password}" \
+  -P 3306 \
   "${var.db_name}" < /tmp/db-settings.sql
 
 
