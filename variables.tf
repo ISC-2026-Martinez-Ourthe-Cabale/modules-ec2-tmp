@@ -35,6 +35,10 @@ variable "db_password" {
   type = string
 }
 
+variable "db_port" {
+  type = string
+}
+
 variable "bucket_name" {
     type = string  
 }

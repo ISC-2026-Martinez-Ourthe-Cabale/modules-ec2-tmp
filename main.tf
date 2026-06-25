@@ -33,6 +33,7 @@ set +a
 mysql -h "${var.db_host}" \
   -u "${var.db_username}" \
   -p"${var.db_password}" \
+  -P "${var.db_port}"
   "${var.db_name}" < /tmp/db-settings.sql
 
 
