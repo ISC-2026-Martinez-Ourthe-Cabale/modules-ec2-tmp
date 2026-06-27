@@ -1,3 +1,4 @@
+## Recurso de instancia EC2 para inicializar la base de datos con un script SQL desde S3.
 resource "aws_instance" "db_init" {
 
   ami           = var.ami
@@ -30,6 +31,8 @@ set -a
 source /tmp/.env
 set +a
 
+## Esperar a que la base de datos esté lista antes de ejecutar el script SQL
+
 until mysql -h "${var.db_host}" \
   -u "${var.db_username}" \
   -p"${var.db_password}" \
@@ -39,6 +42,8 @@ do
   echo "Esperando a que la base de datos esté lista..."
   sleep 5
 done
+
+## Ejecutar el script SQL para inicializar la base de datos
 
 mysql -h "${var.db_host}" \
   -u "${var.db_username}" \
