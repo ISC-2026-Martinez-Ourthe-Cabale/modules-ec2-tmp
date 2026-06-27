@@ -43,13 +43,24 @@ do
   sleep 5
 done
 
-## Ejecutar el script SQL para inicializar la base de datos
+## Verificar si la base de datos ya esta populada (existe la tabla admin) antes de ejecutar el script
 
-mysql -h "${var.db_host}" \
+TABLA_ADMIN=$(mysql -h "${var.db_host}" \
   -u "${var.db_username}" \
   -p"${var.db_password}" \
   -P "${var.db_port}" \
-  "${var.db_name}" < /tmp/db-settings.sql
+  -N -e "SHOW TABLES LIKE 'admin';" "${var.db_name}")
+
+if [ -z "$TABLA_ADMIN" ]; then
+  echo "La base de datos no esta populada, ejecutando script de inicializacion..."
+  mysql -h "${var.db_host}" \
+    -u "${var.db_username}" \
+    -p"${var.db_password}" \
+    -P "${var.db_port}" \
+    "${var.db_name}" < /tmp/db-settings.sql
+else
+  echo "La base de datos ya esta populada, no se ejecuta ningun script."
+fi
 
 
 EOF
