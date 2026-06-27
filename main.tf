@@ -58,6 +58,13 @@ if [ -z "$TABLA_ADMIN" ]; then
     -p"${var.db_password}" \
     -P "${var.db_port}" \
     "${var.db_name}" < /tmp/db-settings.sql
+
+  ## Completar el campo images de cada producto con la URL publica del bucket de imagenes, en el formato serializado que espera la app (a:1:{i:0;s:N:"url";})
+  mysql -h "${var.db_host}" \
+    -u "${var.db_username}" \
+    -p"${var.db_password}" \
+    -P "${var.db_port}" \
+    "${var.db_name}" -e "UPDATE products SET images = CONCAT('a:1:{i:0;s:', LENGTH(CONCAT('${var.images_base_url}', '/', images)), ':\"', CONCAT('${var.images_base_url}', '/', images), '\";}') WHERE images NOT LIKE 'a:%';"
 else
   echo "La base de datos ya esta populada, no se ejecuta ningun script."
 fi

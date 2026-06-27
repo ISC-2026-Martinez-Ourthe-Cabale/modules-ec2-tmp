@@ -5,29 +5,70 @@
 
 ## Descripción
 
-Este módulo aprovisiona instancias Amazon EC2 temporales destinadas a tareas de desarrollo, validación y pruebas de la infraestructura.
+Este módulo aprovisiona una instancia EC2 que **inicializa la base de datos de forma idempotente** y completa las URLs de imágenes de los productos. Se ejecuta como parte de cada `terraform apply`, vía `user_data`.
 
-Su principal objetivo es permitir la verificación de:
+### Flujo del `user_data`
 
-* Conectividad entre componentes de la infraestructura.
-* Configuración de redes y Security Groups.
-* Acceso a la base de datos RDS.
-* Despliegue y funcionamiento de la aplicación antes de habilitar el Auto Scaling Group definitivo.
+1. Instala `mariadb105` (cliente MySQL) y `awscli`.
+2. Descarga `db-settings.sql` desde `s3://<bucket_name>/db-settings/db-settings.sql`.
+3. Espera (con reintentos) a que la base de datos RDS responda.
+4. **Chequea si la base ya está poblada**, buscando la tabla `admin` (`SHOW TABLES LIKE 'admin'`).
+   - Si la tabla **ya existe** → no hace nada más (evita el error de `CREATE TABLE` duplicado en reaplicaciones).
+   - Si **no existe** →
+     a. Ejecuta `db-settings.sql` contra la base (crea tablas y carga los datos semilla).
+     b. Corre un `UPDATE products SET images = ...` que arma el array serializado de PHP (`a:1:{i:0;s:N:"url";}`) que espera la aplicación, usando `images_base_url` (el bucket público de imágenes de `storage-backup`) más el nombre de archivo que ya está en cada fila.
 
-## Caso de Uso
+## Por qué EC2 y no Lambda
 
-Este módulo está pensado para ser utilizado únicamente durante las etapas iniciales de desarrollo y pruebas.
+La base de datos vive en una subnet privada solo accesible desde el Security Group de EC2. Esta instancia reutiliza ese mismo SG y el cliente `mysql` ya instalado, sin necesitar VPC config de Lambda ni vendorear un driver de MySQL.
 
-Una vez validada la infraestructura, las instancias de aplicación en ambientes productivos son gestionadas por el módulo `module-asg`, encargado del aprovisionamiento automático y escalado de las instancias EC2.
+## Recursos Creados
 
-## Recomendaciones
+| Recurso AWS    | Descripción                                                                |
+| --------------- | ----------------------------------------------------------------------------- |
+| `aws_instance` | Instancia EC2 (`db-init-job`) que ejecuta el `user_data` descripto arriba   |
 
-> **Importante:** Se recomienda destruir los recursos creados por este módulo una vez finalizada la fase de pruebas, con el fin de evitar costos innecesarios en AWS.
+## Variables de Entrada
 
-## Flujo Recomendado
+| Variable                | Tipo           | Default     | Descripción                                                          |
+| ------------------------ | -------------- | ----------- | ----------------------------------------------------------------------- |
+| `private_subnet_ids`    | `list(string)` | —           | Subnets privadas APP; se usa la primera (`[0]`) para la instancia      |
+| `ec2_security_group_id` | `string`       | —           | Security Group de EC2, con acceso permitido hacia RDS                 |
+| `instance_type`         | `string`       | `"t3.micro"` | Tipo de instancia                                                      |
+| `ami`                   | `string`       | —           | AMI a utilizar                                                        |
+| `db_host`               | `string`       | —           | Endpoint/host de la base de datos RDS                                 |
+| `db_name`               | `string`       | —           | Nombre de la base de datos                                            |
+| `db_username`           | `string`       | —           | Usuario de la base de datos                                           |
+| `db_password`           | `string`       | —           | Contraseña de la base de datos                                        |
+| `db_port`               | `string`       | —           | Puerto de la base de datos                                            |
+| `bucket_name`           | `string`       | —           | Bucket S3 donde está `db-settings.sql`                                |
+| `images_base_url`       | `string`       | —           | URL base HTTPS del bucket público de imágenes (output de `storage-backup`) |
 
-1. Desplegar la infraestructura base.
-2. Crear instancias temporales mediante `modules-ec2-tmp`.
-3. Validar conectividad y funcionamiento de la aplicación.
-4. Destruir las instancias temporales.
-5. Habilitar el despliegue definitivo mediante `module-asg`.
+## Ejemplo de Uso
+
+```hcl
+module "ec2-tmp" {
+  source = "git::ssh://git@github.com/ISC-2026-Martinez-Ourthe-Cabale/modules-ec2-tmp.git"
+
+  db_host               = module.database.db_address
+  db_name               = var.db_name
+  db_port               = var.db_port
+  db_username           = var.db_username
+  db_password           = var.db_password
+  ami                   = var.ami
+  private_subnet_ids    = module.networking.private_app_subnet_ids
+  ec2_security_group_id = module.security_groups.ec2_sg_id
+  bucket_name           = var.bucket_name
+  images_base_url       = module.db_storage.images_base_url
+
+  depends_on = [
+    module.db_storage
+  ]
+}
+```
+
+## Consideraciones
+
+> **Costo:** a diferencia de `module-db-backup` (que autoapaga su instancia al terminar), esta instancia **no se autoapaga** — queda corriendo después de inicializar la base. Si la idea es minimizar costo, conviene agregar un `shutdown -h now` al final del script una vez confirmado que la población/fix de imágenes funciona, ya que `instance_initiated_shutdown_behavior = "terminate"` haría que se termine sola.
+
+> **Reposblar desde cero:** si ya aplicaste este módulo antes de que existiera el fix de imágenes, la tabla `admin` ya existe y el bloque entero (incluido el `UPDATE` de imágenes) se va a seguir saltando. Para que corra, hay que repoblar la base desde cero o ejecutar el `UPDATE` manualmente.
