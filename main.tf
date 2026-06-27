@@ -30,10 +30,20 @@ set -a
 source /tmp/.env
 set +a
 
+until mysql -h "${var.db_host}" \
+  -u "${var.db_username}" \
+  -p"${var.db_password}" \
+  -P "${var.db_port}" \
+  -e "SELECT 1;" "${var.db_name}" >/dev/null 2>&1
+do
+  echo "Esperando a que la base de datos esté lista..."
+  sleep 5
+done
+
 mysql -h "${var.db_host}" \
   -u "${var.db_username}" \
   -p"${var.db_password}" \
-  -P "${var.db_port}"
+  -P "${var.db_port}" \
   "${var.db_name}" < /tmp/db-settings.sql
 
 
