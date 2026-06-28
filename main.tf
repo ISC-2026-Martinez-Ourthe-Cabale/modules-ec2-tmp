@@ -16,6 +16,7 @@ resource "aws_instance" "db_init" {
   user_data = <<-EOF
 #!/bin/bash
 
+set -e
 dnf install -y mariadb105 awscli
 
 aws s3 cp s3://${var.bucket_name}/db-settings/db-settings.sql /tmp/db-settings.sql
@@ -69,6 +70,8 @@ else
   echo "La base de datos ya esta populada, no se ejecuta ningun script."
 fi
 
+echo "Inicialización finalizada. Terminando instancia..."
+shutdown -h now
 
 EOF
 
@@ -76,3 +79,4 @@ EOF
     Name = "db-init-job"
   }
 }
+
