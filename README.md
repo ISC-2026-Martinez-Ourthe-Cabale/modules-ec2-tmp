@@ -69,6 +69,4 @@ module "ec2-tmp" {
 
 ## Consideraciones
 
-> **Costo:** a diferencia de `module-db-backup` (que autoapaga su instancia al terminar), esta instancia **no se autoapaga** — queda corriendo después de inicializar la base. Si la idea es minimizar costo, conviene agregar un `shutdown -h now` al final del script una vez confirmado que la población/fix de imágenes funciona, ya que `instance_initiated_shutdown_behavior = "terminate"` haría que se termine sola.
-
 > **Reposblar desde cero:** si ya aplicaste este módulo antes de que existiera el fix de imágenes, la tabla `admin` ya existe y el bloque entero (incluido el `UPDATE` de imágenes) se va a seguir saltando. Para que corra, hay que repoblar la base desde cero o ejecutar el `UPDATE` manualmente.

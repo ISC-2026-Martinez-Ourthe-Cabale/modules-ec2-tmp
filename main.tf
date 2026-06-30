@@ -17,6 +17,17 @@ resource "aws_instance" "db_init" {
 #!/bin/bash
 
 set -e
+
+apagar_instancia() {
+  codigo_salida=$?
+  trap - EXIT
+
+  echo "El script terminó con código $codigo_salida. Apagando instancia..."
+  systemctl poweroff
+}
+
+trap apagar_instancia EXIT
+
 dnf install -y mariadb105 awscli
 
 aws s3 cp s3://${var.bucket_name}/db-settings/db-settings.sql /tmp/db-settings.sql
@@ -70,8 +81,6 @@ else
   echo "La base de datos ya esta populada, no se ejecuta ningun script."
 fi
 
-echo "Inicialización finalizada. Terminando instancia..."
-shutdown -h now
 
 EOF
 
@@ -79,4 +88,3 @@ EOF
     Name = "db-init-job"
   }
 }
-
