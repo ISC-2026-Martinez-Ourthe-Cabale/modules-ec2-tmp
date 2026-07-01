@@ -66,9 +66,4 @@ module "ec2-tmp" {
   ]
 }
 ```
-
-## Consideraciones
-
-> **Reposblar desde cero:** si ya aplicaste este módulo antes de que existiera el fix de imágenes, la tabla `admin` ya existe y el bloque entero (incluido el `UPDATE` de imágenes) se va a seguir saltando. Para que corra, hay que repoblar la base desde cero o ejecutar el `UPDATE` manualmente.
-
 ---
